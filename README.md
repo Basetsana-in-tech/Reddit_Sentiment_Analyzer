@@ -1,42 +1,73 @@
-A **Reddit Sentiment Tracker** is a fantastic choice for a portfolio project because it proves you can handle **Live Data Streams**, **API Integration**, and **Natural Language Processing (NLP)**.
+# Reddit Sentiment Tracker
 
-In the eyes of a recruiter, this project says: *"I don't just wait for an Excel file; I can go out and pull real-world data from the internet."*
+A **Reddit Sentiment Tracker** that lets you search a subreddit or topic and see how the Reddit community feels about it in real time.
 
----
-
-### 1. How it works (The Data Flow)
-To build this, you connect three main parts:
-1.  **The Source:** You use the **Reddit API (PRAW)** to scan specific subreddits (like `r/cycling`, `r/technology`, or `r/stocks`).
-2.  **The Brain:** You send the post titles and comments to a Sentiment Model (like **OpenAI** or **Hugging Face**).
-3.  **The Display:** You show the results on your Next.js web page.
-
-
+This project is built with **Next.js** and uses a server-side proxy API to fetch live Reddit data, then performs sentiment analysis on Reddit post titles and content using the `sentiment` package.
 
 ---
 
-### 2. Why this fits your GBI Project
-You can actually link this to your current work! Imagine adding a section to your webpage called **"Market Voice Tracker."** * It scans Reddit for mentions of "Global Bike Inc" or "Touring Bikes."
-* If people are complaining about prices, your "Sentiment Score" drops.
-* **The Professional Insight:** You can tell a recruiter, *"I built this to see if negative social media sentiment predicts a drop in the June Sales Peak."*
+## Features
+
+- Search any subreddit or topic name
+- Fetch live Reddit hot posts
+- Analyze sentiment using natural language scoring
+- Display a hero KPI for community sentiment
+- Highlight top posts and show which are most discussed
+- Dark orange theme with neon sentiment indicators
 
 ---
 
-### 3. Key Components for the Web Page
-If you want to build this in **v0**, here is what the UI should include:
-* **A Search Bar:** To type in any Subreddit name.
-* **The 'Mood Meter':** A gauge chart showing if the current vibe is "Bullish/Happy" or "Bearish/Angry."
-* **Word Cloud:** A visual of the most used words in the positive vs. negative posts.
-* **Alert System:** A "Panic Button" that lights up if sentiment drops by more than 20% in an hour.
+## How it works
+
+1. **Enter a topic or subreddit** in the search field.
+2. The app calls the local API route at `/api/reddit`.
+3. The server fetches `https://www.reddit.com/r/{subreddit}/hot.json?limit=10`.
+4. The client analyzes the post text and computes a sentiment score.
+5. The dashboard shows the overall sentiment percentage and top posts.
 
 ---
 
-### 4. Technical Skills this Proves
-| Feature | Skill Demonstrated |
-| :--- | :--- |
-| **Reddit API Fetching** | Working with JSON and asynchronous data. |
-| **NLP Processing** | Text tokenization and scoring. |
-| **Live Updates** | Managing real-time state in React/Next.js. |
-| **Data Viz** | Using Recharts or D3.js to show trends over time. |
+## Getting Started
 
+### Install
 
-> "Build a **Reddit Sentiment Tracker Dashboard**. It should have a search input for a subreddit, a large hero KPI showing 'Current Community Sentiment' (Percentage), and a list of the top 5 'Most Polarizing' posts. Use a dark, high-tech theme with glowing neon accents for positive/negative scores."
+```bash
+npm install
+```
+
+### Run locally
+
+```bash
+npm run dev
+```
+
+Open `http://localhost:3000` in your browser.
+
+---
+
+## Example input
+
+Try these values:
+
+- `mildlyinfuriating`
+- `technology`
+- `stocks`
+- `cycling`
+
+---
+
+## Deployment
+
+The repo is already connected to GitHub at:
+
+`https://github.com/Basetsana-in-tech/Reddit_Sentiment_Analyzer`
+
+For a public live deployment, the best option is to use **Vercel** or **Netlify** because this is a Next.js app. GitHub can host the source code, while Vercel is the recommended platform for automatic Next.js deployment.
+
+---
+
+## Notes
+
+- The app uses a server-side API to avoid browser CORS issues with Reddit.
+- The sentiment score is normalized to a percentage for easy interpretation.
+- Green indicates positive sentiment, red indicates negative sentiment, and yellow means neutral.
