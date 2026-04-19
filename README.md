@@ -62,7 +62,27 @@ The repo is already connected to GitHub at:
 
 `https://github.com/Basetsana-in-tech/Reddit_Sentiment_Analyzer`
 
-For a public live deployment, the best option is to use **Vercel** or **Netlify** because this is a Next.js app. GitHub can host the source code, while Vercel is the recommended platform for automatic Next.js deployment.
+This project is a Next.js app with server-side API routes, so the best live hosting option is **Vercel**.
+
+### Deploy to Vercel
+
+1. Go to https://vercel.com and log in with your GitHub account.
+2. Click **New Project**.
+3. Select the `Basetsana-in-tech/Reddit_Sentiment_Analyzer` repository.
+4. Keep the default settings and deploy.
+5. If needed, set the root directory to `/` and the framework to **Next.js**.
+
+### Deploy using Vercel CLI
+
+If you want to deploy from the command line, run:
+
+```bash
+npm install -g vercel
+vercel login
+vercel --prod
+```
+
+If you prefer not to use Vercel, note that GitHub Pages is not suitable for this app because it cannot run Next.js server-side API routes.
 
 ---
 
