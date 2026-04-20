@@ -8,23 +8,25 @@ export async function GET(request: Request) {
 
   try {
     const cleanName = subreddit.trim().replace(/^r\//, '');
-    const url = `https://www.reddit.com/r/${cleanName}/hot.json?limit=10`;
+    
+    // We use "allorigins.win" which is a free proxy specifically designed 
+    // to bypass CORS and cloud IP blocks like the one Railway is hitting.
+    const targetUrl = `https://www.reddit.com/r/${cleanName}/hot.json?limit=10`;
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
 
-    const response = await fetch(url, {
-      headers: {
-        // This specific string tells Reddit you are a personal project, not a bot
-        'User-Agent': 'v2:student.sentiment.project:v1.0 (by /u/Independent-Cry-3774)'
-      },
-      next: { revalidate: 0 }
-    });
+    const response = await fetch(proxyUrl);
+    const data = await response.json();
 
-    if (!response.ok) {
-      return NextResponse.json({ error: `Reddit gave a ${response.status} error. Try again.` }, { status: response.status });
+    // AllOrigins puts the Reddit JSON inside a "contents" string
+    const redditData = JSON.parse(data.contents);
+
+    if (redditData.error || !redditData.data) {
+      return NextResponse.json({ error: 'Reddit blocked the request or subreddit not found' }, { status: 403 });
     }
 
-    const data = await response.json();
-    return NextResponse.json(data);
+    return NextResponse.json(redditData);
   } catch (error) {
-    return NextResponse.json({ error: 'Connection failed. Please try again.' }, { status: 500 });
+    console.error("API Error:", error);
+    return NextResponse.json({ error: 'The cloud connection failed. Try again in a moment.' }, { status: 500 });
   }
 }
