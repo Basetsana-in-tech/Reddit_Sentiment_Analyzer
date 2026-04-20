@@ -5,48 +5,40 @@ export async function GET(request: Request) {
   const subreddit = searchParams.get('subreddit');
 
   if (!subreddit) {
-    return NextResponse.json({ error: 'Subreddit is required' }, { status: 400 });
+    return NextResponse.json({ error: 'Please enter a subreddit name' }, { status: 400 });
   }
 
   try {
-    const response = await fetch(
-      `https://www.reddit.com/r/${encodeURIComponent(subreddit)}/hot.json?limit=10`,
-      {
-        headers: {
-          // This "tricks" Reddit into thinking the request is from a regular Chrome browser
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-          'Accept': 'application/json',
-        },
-        // This prevents Vercel from caching a "blocked" response
-        next: { revalidate: 0 },
-      }
-    );
+    // Clean the input (remove spaces and 'r/')
+    const cleanName = subreddit.trim().replace(/^r\//, '');
+    const url = `https://www.reddit.com/r/${cleanName}/hot.json?limit=10`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json'
+      },
+      next: { revalidate: 0 }
+    });
 
-    if (!response.ok) {
-      // If Reddit sends HTML (the error page), we capture it as text to avoid crashing
-      const errorBody = await response.text();
-      
-      // Check if we got the HTML "scrim" instead of data
-      if (errorBody.includes('<body')) {
-        return NextResponse.json(
-          { error: 'Reddit is temporarily blocking this IP. Try again in 2 minutes.' },
-          { status: 429 }
-        );
-      }
-
-      return NextResponse.json(
-        { error: 'Reddit fetch failed' },
-        { status: response.status }
-      );
+    // 1. Check if the subreddit exists or is public
+    if (response.status === 404 || response.status === 403) {
+      return NextResponse.json({ 
+        error: `The subreddit 'r/${cleanName}' was not found or is private.` 
+      }, { status: response.status });
     }
 
     const data = await response.json();
+
+    // 2. Check if the subreddit is empty
+    if (!data.data?.children || data.data.children.length === 0) {
+      return NextResponse.json({ 
+        error: `We found 'r/${cleanName}', but there are no recent posts to analyze.` 
+      }, { status: 200 });
+    }
+
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Fetch Error:', error);
-    return NextResponse.json(
-      { error: 'Server failed to connect to Reddit' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Reddit is currently unreachable. Try again later.' }, { status: 500 });
   }
 }
