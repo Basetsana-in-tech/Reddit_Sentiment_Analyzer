@@ -36,13 +36,18 @@ export function SentimentDashboard() {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch(`https://www.reddit.com/r/${sub}/hot.json?limit=50`);
-      if (!response.ok) throw new Error('Failed to fetch posts');
+      const response = await fetch(`/api/reddit?subreddit=${encodeURIComponent(sub)}`);
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || 'Failed to fetch posts');
+      }
       const data = await response.json();
+      console.log('Number of posts fetched:', data.data.children.length);
       const fetchedPosts: RedditPost[] = data.data.children.map((child: any) => {
         const post = child.data;
         const text = post.title + ' ' + (post.selftext || '');
         const sent = analyzeSentiment(text);
+        console.log('Post:', post.title.substring(0, 50), 'Sentiment:', sent);
         return {
           id: post.id,
           title: post.title,
@@ -55,9 +60,11 @@ export function SentimentDashboard() {
       });
       setPosts(fetchedPosts);
       const avgSentiment = fetchedPosts.reduce((sum, p) => sum + p.sentiment, 0) / fetchedPosts.length;
-      setSentimentScore(Math.round((avgSentiment + 5) / 10 * 100)); // Normalize to 0-100
-    } catch (err) {
-      setError('Failed to fetch or analyze posts. Check subreddit name.');
+      console.log('Average sentiment:', avgSentiment, 'Posts:', fetchedPosts.length);
+      setSentimentScore(Math.round((avgSentiment + 5) / 10 * 100));
+    } catch (err: any) {
+      console.error('Error fetching posts:', err);
+      setError(err?.message || 'Failed to fetch or analyze posts.');
     }
     setLoading(false);
   };
@@ -70,12 +77,12 @@ export function SentimentDashboard() {
   };
 
   const topPolarizingPosts = posts
-    .filter(p => Math.abs(p.sentiment) < 2) // Close to neutral
+    .filter(p => Math.abs(p.sentiment) < 5) // Include all posts
     .sort((a, b) => b.num_comments - a.num_comments)
     .slice(0, 5);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 to-slate-900 p-6 md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-orange-950 to-orange-900 p-6 md:p-8">
       <div className="mx-auto max-w-6xl">
         {/* Header */}
         <div className="mb-8">
@@ -83,24 +90,42 @@ export function SentimentDashboard() {
           <p className="mt-2 text-slate-400">Monitor community sentiment across Reddit subreddits in real-time</p>
         </div>
 
+        {/* Info Box */}
+        <Card className="mb-8 bg-orange-900/60 border-orange-700">
+          <CardContent>
+            <h2 className="text-xl font-semibold text-white mb-3">What is a sentiment tracker?</h2>
+            <p className="text-sm text-slate-300 mb-4">
+              A sentiment tracker monitors how people feel about a topic on Reddit by analyzing words and phrases from posts. It helps you drill down into real-time conversations, understand public opinion, and see whether a topic is being talked about positively or negatively.
+            </p>
+            <ul className="space-y-2 text-sm text-slate-300 list-disc list-inside">
+              <li><strong>Why it’s useful:</strong> It turns raw Reddit chatter into actionable insight so you can spot trends, issues, or brand sentiment quickly.</li>
+              <li><strong>How it collects data:</strong> The app fetches hot posts from a subreddit and analyzes the text in each post for sentiment.</li>
+              <li><strong>How to use it:</strong> Type the topic or subreddit name you care about, then press Analyze to see how people are searching and talking about it.</li>
+            </ul>
+          </CardContent>
+        </Card>
+
         {/* Search Form */}
-        <Card className="mb-8 bg-slate-900/50 border-slate-700">
+        <Card className="mb-8 bg-orange-900/50 border-orange-700">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
               <Search className="w-5 h-5" />
-              Search Subreddit
+              Enter topic or subreddit name
             </CardTitle>
           </CardHeader>
           <CardContent>
+            <p className="text-sm text-slate-400 mb-3">
+              Type words or a subreddit to analyze sentiment for that topic in real time.
+            </p>
             <form onSubmit={handleSubmit} className="flex gap-4">
               <Input
                 type="text"
-                placeholder="e.g., technology, stocks, cycling"
+                placeholder="e.g., mildlyinfuriating, technology, stocks"
                 value={subreddit}
                 onChange={(e) => setSubreddit(e.target.value)}
-                className="flex-1 bg-slate-800 border-slate-600 text-white"
+                className="flex-1 bg-orange-800 border-orange-600 text-white"
               />
-              <Button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700">
+              <Button type="submit" disabled={loading} className="bg-orange-600 hover:bg-orange-700">
                 {loading ? 'Analyzing...' : 'Analyze'}
               </Button>
             </form>
@@ -110,7 +135,7 @@ export function SentimentDashboard() {
 
         {/* Hero KPI */}
         {posts.length > 0 && (
-          <Card className="mb-8 bg-slate-900/50 border-slate-700">
+          <Card className="mb-8 bg-orange-900/50 border-orange-700">
             <CardContent className="pt-6">
               <div className="text-center">
                 <h2 className="text-2xl font-bold text-white mb-2">Current Community Sentiment</h2>
@@ -131,7 +156,7 @@ export function SentimentDashboard() {
             <h2 className="text-xl font-semibold text-slate-100 mb-4">Top 5 Most Polarizing Posts</h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {topPolarizingPosts.map((post) => (
-                <Card key={post.id} className="bg-slate-900/50 border-slate-700 hover:bg-slate-800/50 transition-colors">
+                <Card key={post.id} className="bg-orange-900/50 border-orange-700 hover:bg-orange-800/50 transition-colors">
                   <CardHeader>
                     <CardTitle className="text-white text-sm leading-tight">{post.title}</CardTitle>
                   </CardHeader>
