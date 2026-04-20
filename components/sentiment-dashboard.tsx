@@ -5,7 +5,7 @@ import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { Search, TrendingUp, TrendingDown } from 'lucide-react';
+import { Search, TrendingUp, TrendingDown, Info, Zap, Globe } from 'lucide-react';
 import Sentiment from 'sentiment';
 
 interface RedditPost {
@@ -25,6 +25,8 @@ export function SentimentDashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const suggestions = ['technology', 'stocks', 'gaming', 'movies', 'science', 'worldnews'];
+
   const sentiment = new Sentiment();
 
   const analyzeSentiment = (text: string) => {
@@ -39,50 +41,38 @@ export function SentimentDashboard() {
     
     try {
       const cleanSub = sub.trim().replace(/^r\//, '');
-      // Direct link to Reddit's JSON
       const redditUrl = `https://www.reddit.com/r/${cleanSub}/hot.json?limit=10`;
-      
-      // Using Corsproxy.io - a more reliable bridge for browser-based requests
       const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(redditUrl)}`;
 
       const response = await fetch(proxyUrl);
-      
-      if (!response.ok) {
-        throw new Error('Reddit is currently limiting requests. Please try again in a moment.');
-      }
+      if (!response.ok) throw new Error('Reddit is busy. Try again in a moment.');
       
       const data = await response.json();
 
       if (!data.data || !data.data.children || data.data.children.length === 0) {
-        throw new Error('Subreddit not found or has no recent posts.');
+        throw new Error('Subreddit not found.');
       }
 
       const fetchedPosts: RedditPost[] = data.data.children.map((child: any) => {
         const post = child.data;
         const text = post.title + ' ' + (post.selftext || '');
-        const sent = analyzeSentiment(text);
-        
         return {
           id: post.id,
           title: post.title,
           selftext: post.selftext,
           num_comments: post.num_comments,
           score: post.score,
-          sentiment: sent,
+          sentiment: analyzeSentiment(text),
           url: `https://reddit.com${post.permalink}`,
         };
       });
 
       setPosts(fetchedPosts);
-      
       const avgSentiment = fetchedPosts.reduce((sum, p) => sum + p.sentiment, 0) / fetchedPosts.length;
-      // Calculate a 0-100 score based on sentiment (assuming -5 to +5 range)
-      const normalized = Math.round(((avgSentiment + 5) / 10) * 100);
-      setSentimentScore(Math.min(Math.max(normalized, 0), 100));
+      setSentimentScore(Math.min(Math.max(Math.round(((avgSentiment + 5) / 10) * 100), 0), 100));
 
     } catch (err: any) {
-      console.error('Fetch error:', err);
-      setError(err.message || 'Failed to connect to Reddit.');
+      setError(err.message || 'Connection failed.');
     } finally {
       setLoading(false);
     }
@@ -90,99 +80,112 @@ export function SentimentDashboard() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (subreddit.trim()) {
-      fetchPosts(subreddit.trim());
-    }
+    if (subreddit.trim()) fetchPosts(subreddit.trim());
   };
 
-  const topPosts = [...posts].sort((a, b) => b.num_comments - a.num_comments).slice(0, 6);
-
   return (
-    <div className="space-y-6">
-      {/* Student Portfolio Note */}
-      <Card className="bg-orange-900/40 border-orange-700/50 backdrop-blur-sm">
-        <CardContent className="pt-6">
-          <p className="text-sm text-orange-200/80 italic">
-            <strong>Developer Note:</strong> This application utilizes client-side fetching via a CORS proxy to maintain 100% uptime by bypassing provider-level IP restrictions.
-          </p>
-        </CardContent>
-      </Card>
+    <div className="space-y-8 animate-in fade-in duration-1000">
+      
+      {/* 1. The "What is this?" Section */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="bg-orange-900/30 border-orange-800 backdrop-blur-sm">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 mb-2 text-orange-400">
+              <Info className="w-5 h-5" />
+              <h3 className="font-bold">What is Sentiment?</h3>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              It's the process of using AI to determine if a piece of text is positive, negative, or neutral. This app "reads" the latest Reddit posts to judge the community's mood.
+            </p>
+          </CardContent>
+        </Card>
 
-      {/* Search Section */}
-      <Card className="bg-orange-900/50 border-orange-700 shadow-xl">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <Search className="w-5 h-5 text-orange-400" />
-            Analyze Community Mood
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+        <Card className="bg-orange-900/30 border-orange-800 backdrop-blur-sm">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 mb-2 text-orange-400">
+              <Zap className="w-5 h-5" />
+              <h3 className="font-bold">Real-Time Data</h3>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Every time you hit "Analyze," we pull the 10 freshest posts from Reddit. You aren't seeing old data; you're seeing what the internet is talking about right now.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-orange-900/30 border-orange-800 backdrop-blur-sm">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 mb-2 text-orange-400">
+              <Globe className="w-5 h-5" />
+              <h3 className="font-bold">Community Voice</h3>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Reddit is a global focus group. This tool helps you see if people are excited (Bullish) or upset (Bearish) about specific topics instantly.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 2. The Search Section */}
+      <Card className="bg-orange-900/50 border-orange-700 shadow-2xl">
+        <CardContent className="pt-8">
           <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3">
             <Input
               type="text"
-              placeholder="Enter subreddit (e.g. technology, space, gaming)"
+              placeholder="Enter a topic or subreddit..."
               value={subreddit}
               onChange={(e) => setSubreddit(e.target.value)}
-              className="flex-1 bg-orange-950/50 border-orange-700 text-white placeholder:text-orange-300/30"
+              className="flex-1 bg-orange-950/50 border-orange-700 text-white"
             />
-            <Button 
-              type="submit" 
-              disabled={loading} 
-              className="bg-orange-600 hover:bg-orange-500 text-white font-bold transition-all"
-            >
-              {loading ? 'Analyzing...' : 'Analyze'}
+            <Button type="submit" disabled={loading} className="bg-orange-600 hover:bg-orange-500 font-bold">
+              {loading ? 'Analyzing...' : 'Analyze Now'}
             </Button>
           </form>
-          {error && <p className="text-red-400 mt-3 text-sm font-medium">⚠️ {error}</p>}
+          
+          {/* Suggested Words */}
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <span className="text-xs text-slate-400 uppercase tracking-widest font-bold">Try these:</span>
+            {suggestions.map((s) => (
+              <button
+                key={s}
+                onClick={() => { setSubreddit(s); fetchPosts(s); }}
+                className="text-xs bg-orange-800/40 hover:bg-orange-700 text-orange-200 px-2 py-1 rounded border border-orange-700/50 transition-colors"
+              >
+                r/{s}
+              </button>
+            ))}
+          </div>
+          {error && <p className="text-red-400 mt-3 text-sm">⚠️ {error}</p>}
         </CardContent>
       </Card>
 
-      {/* Results Section */}
+      {/* 3. Results Section */}
       {posts.length > 0 && (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <Card className="mb-8 bg-orange-900/50 border-orange-700 overflow-hidden">
-            <div className={`h-2 w-full ${sentimentScore > 60 ? 'bg-green-500' : sentimentScore < 40 ? 'bg-red-500' : 'bg-yellow-500'}`} />
-            <CardContent className="pt-8 pb-8 text-center">
-              <h2 className="text-xl font-medium text-orange-100 mb-2">Overall Sentiment Score</h2>
-              <div className={`text-7xl font-black mb-2 ${sentimentScore > 60 ? 'text-green-400' : sentimentScore < 40 ? 'text-red-400' : 'text-yellow-400'}`}>
-                {sentimentScore}%
-              </div>
-              <p className="text-lg font-semibold text-white uppercase tracking-widest">
-                {sentimentScore > 60 ? '🚀 Bullish / Positive' : sentimentScore < 40 ? '📉 Bearish / Negative' : '⚖️ Neutral'}
-              </p>
-            </CardContent>
+        <div className="space-y-6">
+          <Card className="bg-orange-900/50 border-orange-700 overflow-hidden text-center py-10">
+            <h2 className="text-xl text-slate-300 mb-2">The Verdict</h2>
+            <div className={`text-8xl font-black mb-4 ${sentimentScore > 60 ? 'text-green-400' : sentimentScore < 40 ? 'text-red-400' : 'text-yellow-400'}`}>
+              {sentimentScore}%
+            </div>
+            <p className="text-2xl font-bold text-white uppercase tracking-tighter">
+              {sentimentScore > 60 ? 'Positive Vibes 🚀' : sentimentScore < 40 ? 'Negative Energy 📉' : 'Purely Neutral ⚖️'}
+            </p>
           </Card>
 
-          <h3 className="text-white font-bold text-xl mb-4 flex items-center gap-2">
-            <TrendingUp className="w-5 h-5" /> Top Discussions Analyzed
-          </h3>
-          
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {topPosts.map((post) => (
-              <Card key={post.id} className="bg-orange-900/30 border-orange-800 hover:border-orange-600 transition-all group">
+            {posts.map((post) => (
+              <Card key={post.id} className="bg-orange-900/20 border-orange-800 hover:bg-orange-800/40 transition-all">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-white text-sm line-clamp-2 group-hover:text-orange-300 transition-colors">
-                    {post.title}
-                  </CardTitle>
+                  <CardTitle className="text-white text-sm line-clamp-2">{post.title}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center justify-between mb-4">
-                    <Badge variant="outline" className="border-orange-700 text-orange-200">
-                      {post.num_comments} comments
-                    </Badge>
-                    <div className="flex items-center gap-1">
-                      {post.sentiment > 0 ? (
-                        <TrendingUp className="w-4 h-4 text-green-400" />
-                      ) : (
-                        <TrendingDown className="w-4 h-4 text-red-400" />
-                      )}
-                      <span className={`text-xs font-bold ${post.sentiment > 0 ? 'text-green-400' : post.sentiment < 0 ? 'text-red-400' : 'text-slate-400'}`}>
-                        {post.sentiment > 0 ? '+' : ''}{post.sentiment.toFixed(1)}
-                      </span>
-                    </div>
+                  <div className="flex justify-between items-center mb-4">
+                    <Badge className="bg-orange-800/50 text-orange-200">{post.num_comments} comments</Badge>
+                    <span className={`text-xs font-bold ${post.sentiment > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      Score: {post.sentiment.toFixed(1)}
+                    </span>
                   </div>
-                  <Button asChild variant="secondary" size="sm" className="w-full bg-orange-800/50 hover:bg-orange-700 text-orange-100 border-none">
-                    <a href={post.url} target="_blank" rel="noopener noreferrer">View Original Post</a>
+                  <Button asChild variant="outline" size="sm" className="w-full border-orange-700 text-orange-200 hover:bg-orange-700">
+                    <a href={post.url} target="_blank" rel="noopener noreferrer">Read Post</a>
                   </Button>
                 </CardContent>
               </Card>
